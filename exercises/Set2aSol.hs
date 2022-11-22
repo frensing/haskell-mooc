@@ -21,7 +21,7 @@ import Data.List
 -- Ex 1: Define the constant years, that is a list of the values 1982,
 -- 2004 and 2020 in this order.
 
-years = [1982, 2004, 2020]
+years = [1982,2004,2020]
 
 ------------------------------------------------------------------------------
 -- Ex 2: define the function takeFinal, which returns the n last
@@ -46,7 +46,7 @@ takeFinal n xs = drop (length xs - n) xs
 --   updateAt 2 0 [4,5,6,7] ==>  [4,5,0,7]
 
 updateAt :: Int -> a -> [a] -> [a]
-updateAt i x xs = take i xs ++ [x] ++ drop (i + 1) xs
+updateAt i x xs = take i xs ++ [x] ++ drop (i+1) xs
 
 ------------------------------------------------------------------------------
 -- Ex 4: substring i j s should return the substring of s starting at
@@ -89,8 +89,8 @@ isPalindrome str = str == reverse str
 --   palindromify "abracacabra" ==> "acaca"
 
 palindromify :: String -> String
-palindromify s 
-    | isPalindrome s = s
+palindromify s
+    | s == reverse s = s
     | otherwise = palindromify (tail (init s))
 
 ------------------------------------------------------------------------------
@@ -104,9 +104,8 @@ palindromify s
 --   safeDiv 4 0  ==> Nothing
 
 safeDiv :: Integer -> Integer -> Maybe Integer
-safeDiv x y
-    | y == 0 = Nothing
-    | otherwise = Just (div x y)
+safeDiv x 0 = Nothing
+safeDiv x y = Just (div x y)
 
 ------------------------------------------------------------------------------
 -- Ex 8: implement a function greet that greets a person given a first
@@ -135,10 +134,10 @@ greet first (Just last) = "Hello, " ++ first ++ " " ++ last ++ "!"
 --   safeIndex ["a","b","c"] (-1)  ==> Nothing
 
 safeIndex :: [a] -> Int -> Maybe a
-safeIndex xs i 
-    | i < 0 = Nothing
-    | i >= length xs = Nothing
-    | otherwise = Just (xs !! i)
+safeIndex xs i
+  | i < 0 = Nothing
+  | i >= length xs = Nothing
+  | otherwise = Just (xs !! i)
 
 ------------------------------------------------------------------------------
 -- Ex 10: another variant of safe division. This time you should use
@@ -149,9 +148,8 @@ safeIndex xs i
 --   eitherDiv 4 0   ==> Left "4/0"
 
 eitherDiv :: Integer -> Integer -> Either String Integer
-eitherDiv x y
-    | y == 0 = Left (show x ++ "/0")
-    | otherwise = Right (div x y)
+eitherDiv x 0 = Left (show x ++ "/0")
+eitherDiv x y = Right (div x y)
 
 ------------------------------------------------------------------------------
 -- Ex 11: implement the function addEithers, which combines two values of type
@@ -168,6 +166,6 @@ eitherDiv x y
 --   addEithers (Left "boom") (Left "fail") ==> Left "boom"
 
 addEithers :: Either String Int -> Either String Int -> Either String Int
-addEithers (Right a) (Right b) = Right (a + b)
-addEithers (Left a) _ = Left a
-addEithers _ b = b
+addEithers (Right a) (Right b) = Right (a+b)
+addEithers (Left s)   _ = Left s
+addEithers _          b = b

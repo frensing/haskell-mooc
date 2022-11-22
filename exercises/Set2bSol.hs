@@ -30,9 +30,7 @@ binomial n k = binomial (n-1) k + binomial (n-1) (k-1)
 
 oddFactorial :: Integer -> Integer
 oddFactorial 1 = 1
-oddFactorial n
-    | even n = oddFactorial (n-1)
-    | otherwise = n * oddFactorial (n-1)
+oddFactorial n = if even n then oddFactorial (n-1) else n * oddFactorial (n-1)
 
 ------------------------------------------------------------------------------
 -- Ex 3: implement the Euclidean Algorithm for finding the greatest
@@ -64,13 +62,16 @@ oddFactorial n
 -- * https://en.wikipedia.org/wiki/Euclidean_algorithm
 
 myGcd :: Integer -> Integer -> Integer
-myGcd 0 b = b
-myGcd a 0 = a
-myGcd a b
-    | a < b = myGcd a (b-a)
-    | otherwise = myGcd (a-b) b
--- See model solution for absolute values!
-
+myGcd 0 y = y
+myGcd x y = if xAbs < yAbs
+            then myGcd yAbs xAbs
+            else myGcd (xAbs-yAbs) yAbs
+  -- Using the absolute values of x and y makes this function work
+  -- even with negative inputs. This is not required for this set.
+  -- However, without this fix you can run into problems in Set 6,
+  -- if you reuse this answer :)
+  where xAbs = abs x
+        yAbs = abs y
 
 ------------------------------------------------------------------------------
 -- Ex 4: Implement the function leftpad which adds space characters
@@ -86,9 +87,7 @@ myGcd a b
 -- * you can compute the length of a string with the length function
 
 leftpad :: String -> Int -> String
-leftpad s i
-    | length s < i = leftpad (" " ++ s) i
-    | otherwise = s
+leftpad s i = if length s >= i then s else leftpad (" "++s) i
 
 ------------------------------------------------------------------------------
 -- Ex 5: let's make a countdown for a rocket! Given a number, you
@@ -104,11 +103,10 @@ leftpad s i
 -- * you'll probably need a recursive helper function
 
 countdown :: Integer -> String
-countdown i = "Ready! " ++ countdown' i ++ "Liftoff!"
+countdown n = "Ready!   " ++ helper n ++ "Liftoff!"
 
-countdown' :: Integer -> String
-countdown' 0 = ""
-countdown' i = show i ++ "... " ++ countdown' (i-1)
+helper 0 = ""
+helper n = show n ++ "... " ++ helper (n-1)
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement the function smallestDivisor that returns the
@@ -126,12 +124,12 @@ countdown' i = show i ++ "... " ++ countdown' (i-1)
 -- Hint: remember the mod function!
 
 smallestDivisor :: Integer -> Integer
-smallestDivisor x = smallestDivisor' x 2
+smallestDivisor n = smallestDivisor' 2 n
 
-smallestDivisor' :: Integer -> Integer -> Integer
-smallestDivisor' x i
-    | mod x i == 0 = i
-    | otherwise = smallestDivisor' x (i+1)
+smallestDivisor' k n =
+  if mod n k == 0
+  then k
+  else smallestDivisor' (k+1) n
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a function isPrime that checks if the given number
@@ -140,9 +138,9 @@ smallestDivisor' x i
 -- Ps. 0 and 1 are not prime numbers
 
 isPrime :: Integer -> Bool
-isPrime x
-    | x <= 1 = False
-    | otherwise = smallestDivisor x == x
+isPrime 0 = False
+isPrime 1 = False
+isPrime i = smallestDivisor i == i
 
 ------------------------------------------------------------------------------
 -- Ex 8: implement a function biggestPrimeAtMost that returns the
@@ -157,6 +155,7 @@ isPrime x
 --   biggestPrimeAtMost 10 ==> 7
 
 biggestPrimeAtMost :: Integer -> Integer
-biggestPrimeAtMost x
-    | isPrime x = x
-    | otherwise = biggestPrimeAtMost (x-1)
+biggestPrimeAtMost n =
+  if isPrime n
+  then n
+  else biggestPrimeAtMost (n-1)
