@@ -50,10 +50,10 @@ buildList start count end = start : buildList start (count-1) end
 -- Ps. you'll probably need a recursive helper function
 
 sums :: Int -> [Int]
-sums i = sums' 0 1
-    where sums' s y 
-            | y > i = []
-            | otherwise = (s+y) : sums' (s+y) (y+1)
+sums i = go 0 1
+  where go sum j
+          | j>i = []
+          | otherwise = (sum+j) : go (sum+j) (j+1)
 
 ------------------------------------------------------------------------------
 -- Ex 3: define a function mylast that returns the last value of the
@@ -67,8 +67,8 @@ sums i = sums' 0 1
 --   mylast 0 [1,2,3] ==> 3
 
 mylast :: a -> [a] -> a
-mylast def [] = def
-mylast _ (x:xs) = mylast x xs
+mylast def []     = def
+mylast _   (x:xs) = mylast x xs
 
 ------------------------------------------------------------------------------
 -- Ex 4: safe list indexing. Define a function indexDefault so that
@@ -104,11 +104,11 @@ indexDefault (x:xs) i def = indexDefault xs (i-1) def
 --   sorted [7,2,7] ==> False
 
 sorted :: [Int] -> Bool
-sorted [] = True
+sorted []  = True
 sorted [x] = True
 sorted (x:y:xs)
-    | x>y = False
-    | otherwise = sorted (y:xs)
+  | x>y       = False
+  | otherwise = sorted (y:xs)
 
 ------------------------------------------------------------------------------
 -- Ex 6: compute the partial sums of the given list like this:
@@ -120,9 +120,9 @@ sorted (x:y:xs)
 -- Use pattern matching and recursion (and the list constructors : and [])
 
 sumsOf :: [Int] -> [Int]
-sumsOf xs = sumsOf' xs 0
-    where sumsOf' [] _ = []
-          sumsOf' (x:xs) s = (s+x) : sumsOf' xs (s+x)
+sumsOf xs = go 0 xs
+  where go acc (x:xs) = (acc+x) : go (acc+x) xs
+        go _   [] = []
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement the function merge that merges two sorted lists of
@@ -135,38 +135,33 @@ sumsOf xs = sumsOf' xs 0
 --   merge [1,1,6] [1,2]   ==> [1,1,1,2,6]
 
 merge :: [Int] -> [Int] -> [Int]
-merge xs [] = xs
 merge [] ys = ys
+merge xs [] = xs
 merge (x:xs) (y:ys)
-    | x < y = x : merge xs (y:ys)
-    | otherwise = y : merge (x:xs) ys
+  | x < y     = x : merge xs (y:ys)
+  | otherwise = y : merge (x:xs) ys
 
 ------------------------------------------------------------------------------
--- Ex 8: compute the biggest element, using a comparison function
--- passed as an argument.
+-- Ex 8: define the function mymaximum that takes a list and a
+-- function bigger :: a -> a -> Bool and returns the
+-- biggest of the list, according to the comparing function.
 --
--- That is, implement the function mymaximum that takes
---
--- * a function `bigger` :: a -> a -> Bool
--- * a value `initial` of type a
--- * a list `xs` of values of type a
---
--- and returns the biggest value it sees, considering both `initial`
--- and all element in `xs`.
+-- An initial biggest value is provided to give you something to
+-- return for empty lists.
 --
 -- Examples:
 --   mymaximum (>) 3 [] ==> 3
 --   mymaximum (>) 0 [1,3,2] ==> 3
 --   mymaximum (>) 4 [1,3,2] ==> 4    -- initial value was biggest
 --   mymaximum (<) 4 [1,3,2] ==> 1    -- note changed biggerThan
---   mymaximum (\(a,b) (c,d) -> b > d) ("",0) [("Banana",7),("Mouse",8)]
---     ==> ("Mouse",8)
+--   mymaximum (\xs ys -> length xs > length ys) [] [[1,2],[3]]
+--     ==> [1,2]
 
 mymaximum :: (a -> a -> Bool) -> a -> [a] -> a
 mymaximum bigger initial [] = initial
 mymaximum bigger initial (x:xs)
-    | bigger initial x = mymaximum bigger initial xs
-    | otherwise = mymaximum bigger x xs
+  | bigger x initial  = mymaximum bigger x xs
+  | otherwise         = mymaximum bigger initial xs
 
 ------------------------------------------------------------------------------
 -- Ex 9: define a version of map that takes a two-argument function
@@ -180,9 +175,8 @@ mymaximum bigger initial (x:xs)
 -- Use recursion and pattern matching. Do not use any library functions.
 
 map2 :: (a -> b -> c) -> [a] -> [b] -> [c]
-map2 f (a:as) (b:bs) = f a b : map2 f as bs
-map2 f _ _ = []
-
+map2 f (a:as) (b:bs) = f a b:map2 f as bs
+map2 f _      _      = []
 
 ------------------------------------------------------------------------------
 -- Ex 10: implement the function maybeMap, which works a bit like a
@@ -206,6 +200,6 @@ map2 f _ _ = []
 --   ==> []
 
 maybeMap :: (a -> Maybe b) -> [a] -> [b]
-maybeMap f (x:xs) = case f x of Just a -> a:maybeMap f xs
+maybeMap f (x:xs) = case f x of Just y -> y:maybeMap f xs
                                 Nothing -> maybeMap f xs
 maybeMap f [] = []
