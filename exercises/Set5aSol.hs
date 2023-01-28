@@ -50,7 +50,7 @@ twoBananas = MkShoppingEntry "Banana" 1.1 2
 --   totalPrice twoBananas   ==> 2.2
 
 totalPrice :: ShoppingEntry -> Double
-totalPrice (MkShoppingEntry _name price count) = price * fromIntegral count
+totalPrice (MkShoppingEntry _ price count) = fromIntegral count * price
 
 -- buyOneMore should increment the count in an entry by one
 --
@@ -58,7 +58,7 @@ totalPrice (MkShoppingEntry _name price count) = price * fromIntegral count
 --   buyOneMore twoBananas    ==> MkShoppingEntry "Banana" 1.1 3
 
 buyOneMore :: ShoppingEntry -> ShoppingEntry
-buyOneMore (MkShoppingEntry name price count) = MkShoppingEntry name price (count + 1)
+buyOneMore (MkShoppingEntry name price count) = MkShoppingEntry name price (count+1)
 
 ------------------------------------------------------------------------------
 -- Ex 4: define a datatype Person, which should contain the age (an
@@ -67,28 +67,28 @@ buyOneMore (MkShoppingEntry name price count) = MkShoppingEntry name price (coun
 -- Also define a Person value fred, and the functions getAge, getName,
 -- setAge and setName (see below).
 
-data Person = MkPerson {name :: String, age :: Int}
+data Person = MkPerson Int String
   deriving Show
 
 -- fred is a person whose name is Fred and age is 90
 fred :: Person
-fred = MkPerson {name = "Fred", age = 90}
+fred = MkPerson 90 "Fred"
 
 -- getName returns the name of the person
 getName :: Person -> String
-getName p = name p
+getName (MkPerson _ name) = name
 
 -- getAge returns the age of the person
 getAge :: Person -> Int
-getAge p = age p
+getAge (MkPerson age _) = age
 
 -- setName takes a person and returns a new person with the name changed
 setName :: String -> Person -> Person
-setName name p = MkPerson name (getAge p)
+setName name (MkPerson age _name) = MkPerson age name
 
 -- setAge does likewise for age
 setAge :: Int -> Person -> Person
-setAge age p = MkPerson (getName p) age
+setAge age (MkPerson _age name) = MkPerson age name
 
 ------------------------------------------------------------------------------
 -- Ex 5: define a datatype Position which contains two Int values, x
@@ -98,27 +98,27 @@ setAge age p = MkPerson (getName p) age
 --   getY (up (up origin))    ==> 2
 --   getX (up (right origin)) ==> 1
 
-data Position = MkPosition {x :: Int, y :: Int}
+data Position = Position Int Int
 
 -- origin is a Position value with x and y set to 0
 origin :: Position
-origin = MkPosition 0 0
+origin = Position 0 0
 
 -- getX returns the x of a Position
 getX :: Position -> Int
-getX p = x p
+getX (Position x _) = x
 
 -- getY returns the y of a position
 getY :: Position -> Int
-getY p = y p
+getY (Position _ y) = y
 
 -- up increases the y value of a position by one
 up :: Position -> Position
-up p = MkPosition (x p) (y p + 1)
+up (Position x y) = Position x (y+1)
 
 -- right increases the x value of a position by one
 right :: Position -> Position
-right p = MkPosition (x p + 1) (y p)
+right (Position x y) = Position (x+1) y
 
 ------------------------------------------------------------------------------
 -- Ex 6: Here's a datatype that represents a student. A student can
@@ -135,7 +135,7 @@ data Student = Freshman | NthYear Int | Graduated
 study :: Student -> Student
 study Freshman = NthYear 1
 study (NthYear 7) = Graduated
-study (NthYear x) = NthYear (x + 1)
+study (NthYear i) = NthYear (i+1)
 study Graduated = Graduated
 
 ------------------------------------------------------------------------------
@@ -155,28 +155,28 @@ study Graduated = Graduated
 -- get (tick (tick (toggle (tick zero))))
 --   ==> -1
 
-data UpDown = MkUp Int | MkDown Int
+data UpDown = Up Int | Down Int
 
 -- zero is an increasing counter with value 0
 zero :: UpDown
-zero = MkUp 0
+zero = Up 0
 
 -- get returns the counter value
 get :: UpDown -> Int
-get (MkUp x) = x
-get (MkDown x) = x
+get (Up x) = x
+get (Down x) = x
 
 -- tick increases an increasing counter by one or decreases a
 -- decreasing counter by one
 tick :: UpDown -> UpDown
-tick (MkUp x) = MkUp (x+1)
-tick (MkDown x) = MkDown (x-1)
+tick (Up x)   = Up (x+1)
+tick (Down x) = Down (x-1)
 
 -- toggle changes an increasing counter into a decreasing counter and
 -- vice versa
 toggle :: UpDown -> UpDown
-toggle (MkUp x) = MkDown x
-toggle (MkDown x) = MkUp x
+toggle (Up x) = Down x
+toggle (Down x) = Up x
 
 ------------------------------------------------------------------------------
 -- Ex 8: you'll find a Color datatype below. It has the three basic
@@ -211,7 +211,7 @@ rgb Green = [0,1,0]
 rgb Blue = [0,0,1]
 rgb (Mix c c') = zipWith avg (rgb c) (rgb c')
   where avg x y = (x+y)/2
-rgb (Invert a) = map (1-) $ rgb a
+rgb (Invert c) = map (1-) $ rgb c
 
 ------------------------------------------------------------------------------
 -- Ex 9: define a parameterized datatype OneOrTwo that contains one or
@@ -247,11 +247,11 @@ data KeyVals k v = Empty | Pair k v (KeyVals k v)
 
 toList :: KeyVals k v -> [(k,v)]
 toList Empty = []
-toList (Pair k v t) = (k, v) : toList t
+toList (Pair k v rest) = (k,v) : toList rest
 
 fromList :: [(k,v)] -> KeyVals k v
 fromList [] = Empty
-fromList ((k,v):xs) = Pair k v (fromList xs)
+fromList ((k,v):kvs) = Pair k v (fromList kvs)
 
 ------------------------------------------------------------------------------
 -- Ex 11: The data type Nat is the so called Peano
@@ -272,11 +272,11 @@ fromNat Zero = 0
 fromNat (PlusOne n) = 1 + fromNat n
 
 toNat :: Int -> Maybe Nat
-toNat x
-  | x < 0 = Nothing
-  | otherwise = Just (go x)
-      where go 0 = Zero
-            go x = PlusOne (go (x-1))
+toNat z
+  | z < 0      = Nothing
+  | otherwise  = Just (go z)
+  where go 0 = Zero
+        go n = PlusOne (go (n-1))
 
 ------------------------------------------------------------------------------
 -- Ex 12: While pleasingly simple in its definition, the Nat datatype is not
@@ -336,20 +336,31 @@ inc (O b) = I b
 inc (I b) = O (inc b)
 
 prettyPrint :: Bin -> String
-prettyPrint End = ""
-prettyPrint (O b) = prettyPrint b ++ "0"
-prettyPrint (I b) = prettyPrint b ++ "1"
+prettyPrint b = prettyPrint' b ""
+  where
+    prettyPrint' End   s = s
+    prettyPrint' (O b) s = prettyPrint' b ('0':s)
+    prettyPrint' (I b) s = prettyPrint' b ('1':s)
 
 fromBin :: Bin -> Int
-fromBin = go 0
-  where go _ End = 0
-        go x (O b) = go (x+1) b
-        go x (I b) = 2^x + go (x+1) b
+fromBin End   = 0
+fromBin (O b) = 2 * fromBin b
+fromBin (I b) = 2 * fromBin b + 1
 
 toBin :: Int -> Bin
-toBin 0 = O End
-toBin x = go End x
-  where go b 0 = End
-        go b x 
-          | mod x 2 == 1 = I (go b (div x 2))
-          | otherwise = O (go b (div x 2))
+toBin n = toBin' n (O End)
+  where toBin' 0 b = b
+        toBin' n b = toBin' (n - 1) (inc b)
+
+-- Solution to the challenge:
+--
+-- An utility function for extracting the bits from an Int:
+-- bits :: Int -> [Int]
+-- bits 0 = [0]
+-- bits 1 = [1]
+-- bits n = n `mod` 2 : bits (n `div` 2)
+--
+-- toBin :: Int -> Bin
+-- toBin n = foldr helper End (bits n)
+--   where helper 0 = O
+--         helper _ = I
