@@ -26,11 +26,11 @@ data Velocity = Velocity Double
 
 -- velocity computes a velocity given a distance and a time
 velocity :: Distance -> Time -> Velocity
-velocity (Distance d) (Time t) = Velocity (d / t)
+velocity (Distance d) (Time t) = Velocity (d/t)
 
 -- travel computes a distance given a velocity and a time
 travel :: Velocity -> Time -> Distance
-travel (Velocity v) (Time t) = Distance (v * t)
+travel (Velocity v) (Time t) = Distance (v*t)
 
 ------------------------------------------------------------------------------
 -- Ex 2: let's implement a simple Set datatype. A Set is a list of
@@ -52,14 +52,16 @@ emptySet :: Set a
 emptySet = Set []
 
 -- member tests if an element is in a set
-member :: Eq a => a -> Set a -> Bool
-member x (Set s) = x `elem` s
+member a (Set xs) = elem a xs
 
 -- add a member to a set
 add :: Ord a => a -> Set a -> Set a
-add x (Set s) 
-  | member x (Set s) = Set s
-  | otherwise = Set (sort (x:s))
+add a (Set xs) = Set (go a xs)
+  where go a [] = [a]
+        go a (x:xs)
+          | a == x = x:xs
+          | a > x = x : go a xs
+          | a < x = a : x : xs
 
 ------------------------------------------------------------------------------
 -- Ex 3: a state machine for baking a cake. The type Event represents
@@ -94,18 +96,19 @@ add x (Set s)
 data Event = AddEggs | AddFlour | AddSugar | Mix | Bake
   deriving (Eq,Show)
 
-data State = Start | Eggs | Flour | Sugar | SF | Mixed | Error | Finished
+data State = Start | Eggs | EggsFlour | EggsSugar | AllIngredients | Mixed | Error | Finished
   deriving (Eq,Show)
 
-step Start AddEggs = Eggs
-step Eggs AddFlour = Flour
-step Eggs AddSugar = Sugar
-step Flour AddSugar = SF
-step Sugar AddFlour = SF
-step SF Mix = Mixed
-step Mixed Bake = Finished
-step Finished _ = Finished
-step _ _ = Error
+step :: State -> Event -> State
+step Start          AddEggs  = Eggs
+step Eggs           AddFlour = EggsFlour
+step Eggs           AddSugar = EggsSugar
+step EggsFlour      AddSugar = AllIngredients
+step EggsSugar      AddFlour = AllIngredients
+step AllIngredients Mix      = Mixed
+step Mixed          Bake     = Finished
+step Finished       _        = Finished
+step _              _        = Error
 
 -- do not edit this
 bake :: [Event] -> State
@@ -125,7 +128,7 @@ bake events = go Start events
 --   average (1.0 :| [2.0,3.0])  ==>  2.0
 
 average :: Fractional a => NonEmpty a -> a
-average (x :| xs) = (x + sum xs) / (fromIntegral (length xs) + 1)
+average (a:|as) = (a + sum as) / (1 + fromIntegral (length as))
 
 ------------------------------------------------------------------------------
 -- Ex 5: reverse a NonEmpty list.
@@ -133,7 +136,9 @@ average (x :| xs) = (x + sum xs) / (fromIntegral (length xs) + 1)
 -- PS. The Data.List.NonEmpty type has been imported for you
 
 reverseNonEmpty :: NonEmpty a -> NonEmpty a
-reverseNonEmpty (x :| xs) = head rs :| tail rs where rs = reverse (x:xs)
+reverseNonEmpty (x:|xs) = case reverse xs of
+  [] -> x :| []
+  (a:as) -> a :| (as ++ [x])
 
 ------------------------------------------------------------------------------
 -- Ex 6: implement Semigroup instances for the Distance, Time and
@@ -146,13 +151,13 @@ reverseNonEmpty (x :| xs) = head rs :| tail rs where rs = reverse (x:xs)
 --    ==> Velocity 20
 
 instance Semigroup Distance where
-  Distance a <> Distance b = Distance (a+b)
+  (Distance x) <> (Distance y) = Distance (x+y)
 
 instance Semigroup Time where
-  Time a <> Time b = Time (a+b)
+  (Time x) <> (Time y) = Time (x+y)
 
 instance Semigroup Velocity where
-  Velocity a <> Velocity b = Velocity (a+b)
+  (Velocity x) <> (Velocity y) = Velocity (x+y)
 
 ------------------------------------------------------------------------------
 -- Ex 7: implement a Monoid instance for the Set type from exercise 2.
@@ -163,11 +168,9 @@ instance Semigroup Velocity where
 -- What are the class constraints for the instances?
 
 instance Ord a => Semigroup (Set a) where
-  Set as <> set = foldr add set as
-
+  (Set as) <> set = foldr add set as
 instance Ord a => Monoid (Set a) where
   mempty = Set []
-
 
 ------------------------------------------------------------------------------
 -- Ex 8: below you'll find two different ways of representing
@@ -226,7 +229,6 @@ instance Operation2 Multiply2 where
   compute2 (Multiply2 i j) = i*j
   show2 (Multiply2 i j) = show i ++ "*" ++ show j
 
-
 ------------------------------------------------------------------------------
 -- Ex 9: validating passwords. Below you'll find a type
 -- PasswordRequirement describing possible requirements for passwords.
@@ -254,11 +256,11 @@ data PasswordRequirement =
   deriving Show
 
 passwordAllowed :: String -> PasswordRequirement -> Bool
-passwordAllowed p (MinimumLength l) = length p >= l
-passwordAllowed p (ContainsSome s) = any (`elem` p) s
-passwordAllowed p (DoesNotContain s) = not $ passwordAllowed p (ContainsSome s)
-passwordAllowed p (And pr1 pr2) = passwordAllowed p pr1 && passwordAllowed p pr2
-passwordAllowed p (Or pr1 pr2) = passwordAllowed p pr1 || passwordAllowed p pr2
+passwordAllowed pw (MinimumLength len) = length pw >= len
+passwordAllowed pw (ContainsSome chars) = any (\c -> elem c chars) pw
+passwordAllowed pw (DoesNotContain chars) = not (passwordAllowed pw (ContainsSome chars))
+passwordAllowed pw (Or req1 req2) = passwordAllowed pw req1 || passwordAllowed pw req2
+passwordAllowed pw (And req1 req2) = passwordAllowed pw req1 && passwordAllowed pw req2
 
 ------------------------------------------------------------------------------
 -- Ex 10: a DSL for simple arithmetic expressions with addition and
@@ -280,22 +282,24 @@ passwordAllowed p (Or pr1 pr2) = passwordAllowed p pr1 || passwordAllowed p pr2
 --     ==> "(3*(1+1))"
 --
 
-data Arithmetic = Lit Integer | Add Arithmetic Arithmetic | Mult Arithmetic Arithmetic
+data Arithmetic = Literal Integer
+                | Plus Arithmetic Arithmetic
+                | Times Arithmetic Arithmetic
   deriving Show
 
 literal :: Integer -> Arithmetic
-literal = Lit
+literal = Literal
 
 operation :: String -> Arithmetic -> Arithmetic -> Arithmetic
-operation "+" = Add 
-operation "*" = Mult
+operation "+" = Plus
+operation "*" = Times
 
 evaluate :: Arithmetic -> Integer
-evaluate (Lit x) = x
-evaluate (Add a b) = evaluate a + evaluate b
-evaluate (Mult a b) = evaluate a * evaluate b
+evaluate (Literal i) = i
+evaluate (Plus a b) = evaluate a + evaluate b
+evaluate (Times a b) = evaluate a * evaluate b
 
 render :: Arithmetic -> String
-render (Lit x) = show x
-render (Add a b) = "(" ++ render a ++ "+" ++ render b ++ ")"
-render (Mult a b) = "(" ++ render a ++ "*" ++ render b ++ ")"
+render (Literal i) = show i
+render (Plus a b) = "(" ++ render a ++ "+" ++ render b ++ ")"
+render (Times a b) = "(" ++ render a ++ "*" ++ render b ++ ")"
