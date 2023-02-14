@@ -103,12 +103,17 @@ nextCol (i,j) = (i,j+1)
 type Size = Int
 
 prettyPrint :: Size -> [Coord] -> String
-prettyPrint s qs = go s (1,1) qs
-  where go s (r,c) qs
-          | r >= s+1 = ""
-          | c == s = prt (r,c) qs ++ "\n" ++ go s (nextRow (r,c)) qs
-          | otherwise = prt (r,c) qs ++ go s (nextCol (r,c)) qs
-        prt (r,c) qs = if (r,c) `elem` qs then "Q" else "."
+ -- This is the solution to the challenge:
+prettyPrint n qs =
+  let
+    helper (i,j) ((r,c):qs)
+      | i==r && j == c       = 'Q'  : helper (nextCol (i,j)) qs
+    helper (i,j) qs
+      | i > n                = ""
+      | j > n                = '\n' : helper (nextRow (i,j)) qs
+      | otherwise            = '.'  : helper (nextCol (i,j)) qs
+  in
+    helper (1,1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 3: The task in this exercise is to define the relations sameRow, sameCol,
@@ -132,16 +137,16 @@ prettyPrint s qs = go s (1,1) qs
 --   sameAntidiag (500,5) (5,500) ==> True
 
 sameRow :: Coord -> Coord -> Bool
-sameRow (i,j) (k,l) = i == k
+sameRow (i,_) (k,_) = i == k
 
 sameCol :: Coord -> Coord -> Bool
-sameCol (i,j) (k,l) = j == l
+sameCol (_,j) (_,l) = j == l
 
 sameDiag :: Coord -> Coord -> Bool
-sameDiag (i,j) (k,l) = j == l + (i-k)
+sameDiag (i,j) (k,l) = i - j == k - l
 
 sameAntidiag :: Coord -> Coord -> Bool
-sameAntidiag (i,j) (k,l) = j == l - (i-k)
+sameAntidiag (i,j) (k,l) = i + j == k + l
 
 --------------------------------------------------------------------------------
 -- Ex 4: In chess, a queen may capture another piece in the same row, column,
@@ -196,8 +201,8 @@ type Candidate = Coord
 type Stack     = [Coord]
 
 danger :: Candidate -> Stack -> Bool
-danger c xs = any (check c) xs
-  where check c x = sameRow c x || sameCol c x || sameDiag c x || sameAntidiag c x
+danger c qs = or [r c q | r <- relations, q <- qs]
+  where relations = [sameRow, sameCol, sameDiag, sameAntidiag]
 
 --------------------------------------------------------------------------------
 -- Ex 5: In this exercise, the task is to write a modified version of
@@ -232,15 +237,16 @@ danger c xs = any (check c) xs
 -- solution to this version. Any working solution is okay in this exercise.)
 
 prettyPrint2 :: Size -> Stack -> String
-prettyPrint2 s qs = go s (1,1) qs
-  where go s (r,c) qs
-          | r >= s+1 = ""
-          | c == s = prt (r,c) qs ++ "\n" ++ go s (nextRow (r,c)) qs
-          | otherwise = prt (r,c) qs ++ go s (nextCol (r,c)) qs
-        prt (r,c) qs
-          | (r,c) `elem` qs = "Q"
-          | danger (r,c) qs = "#"
-          | otherwise = "."
+prettyPrint2 n qs =
+  let
+    helper (i,j) qs
+      | i > n           = ""
+      | j > n           = '\n' : helper (nextRow (i,j)) qs
+      | (i,j) `elem` qs = 'Q'  : helper (nextCol (i,j)) qs
+      | danger (i,j) qs = '#'  : helper (nextCol (i,j)) qs
+      | otherwise       = '.'  : helper (nextCol (i,j)) qs
+  in
+    helper (1,1) (sort qs)
 
 --------------------------------------------------------------------------------
 -- Ex 6: Now that we can check if a piece can be safely placed into a square in
@@ -285,10 +291,10 @@ prettyPrint2 s qs = go s (1,1) qs
 --     Q#######
 
 fixFirst :: Size -> Stack -> Maybe Stack
-fixFirst n ((r,c):s)
-  | c > n          = Nothing
-  | danger (r,c) s = fixFirst n (nextCol (r,c):s)
-  | otherwise      = Just ((r,c) : s)
+fixFirst n ((i,j):s)
+  | j > n          = Nothing
+  | danger (i,j) s = fixFirst n (nextCol (i,j):s)
+  | otherwise      = Just ((i,j):s)
 
 --------------------------------------------------------------------------------
 -- Ex 7: We need two helper functions for stack management.
@@ -310,10 +316,11 @@ fixFirst n ((r,c):s)
 -- Hint: Remember nextRow and nextCol? Use them!
 
 continue :: Stack -> Stack
-continue (h:s) = nextRow h : s
+continue ((i,j):s) = nextRow (i,j) : (i,j) : s
 
 backtrack :: Stack -> Stack
-backtrack (_:h:s) = nextCol h : s
+backtrack (_:(i,j):s) = nextCol (i,j) : s
+backtrack s = error $ "can't backtrack " ++ show s
 
 --------------------------------------------------------------------------------
 -- Ex 8: Let's take a step. Our algorithm solves the problem (in a
@@ -382,9 +389,9 @@ backtrack (_:h:s) = nextCol h : s
 --     step 8 [(6,1),(5,4),(4,2),(3,5),(2,3),(1,1)] ==> [(5,5),(4,2),(3,5),(2,3),(1,1)]
 
 step :: Size -> Stack -> Stack
-step n s = case fixFirst n s of
-  Nothing -> backtrack s
-  Just s -> continue s
+step n qs = case fixFirst n qs of
+              Just qs' -> continue qs'
+              Nothing -> backtrack qs
 
 --------------------------------------------------------------------------------
 -- Ex 9: Let's solve our puzzle! The function finish takes a partial
@@ -399,9 +406,9 @@ step n s = case fixFirst n s of
 -- solve the n queens problem.
 
 finish :: Size -> Stack -> Stack
-finish n s 
-  | length s > n = tail s
-  | otherwise    = finish n (step n s)
+finish n qs
+  | length qs > n = tail qs
+  | otherwise     = finish n (step n qs)
 
 solve :: Size -> Stack
 solve n = finish n [(1,1)]
