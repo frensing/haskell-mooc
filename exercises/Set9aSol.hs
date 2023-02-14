@@ -30,7 +30,7 @@ workload nExercises hoursPerExercise
   | total < 10 = "Piece of cake!"
   | total > 100 = "Holy moly!"
   | otherwise = "Ok."
-    where total = nExercises * hoursPerExercise
+  where total = nExercises * hoursPerExercise
 
 ------------------------------------------------------------------------------
 -- Ex 2: Implement the function echo that builds a string like this:
@@ -43,8 +43,8 @@ workload nExercises hoursPerExercise
 -- Hint: use recursion
 
 echo :: String -> String
-echo "" = ""
-echo x = x ++ ", " ++ echo (tail x)
+echo [] = []
+echo xs = xs ++ ", " ++ echo (tail xs)
 
 ------------------------------------------------------------------------------
 -- Ex 3: A country issues some banknotes. The banknotes have a serial
@@ -57,11 +57,12 @@ echo x = x ++ ", " ++ echo (tail x)
 -- are valid.
 
 countValid :: [String] -> Int
-countValid xs = length $ filter isValid xs
-  where isValid x
-          | x!!2 == x!!4 = True
-          | x!!3 == x!!5 = True
-          | otherwise = False
+countValid ns = length (filter valid ns)
+  where valid n
+          -- indexing starts from zero!
+          | n !! 2 == n !! 4 = True
+          | n !! 3 == n !! 5 = True
+          | otherwise        = False
 
 ------------------------------------------------------------------------------
 -- Ex 4: Find the first element that repeats two or more times _in a
@@ -83,10 +84,10 @@ repeated _ = Nothing
 -- measurements have failed, so the lab is using the type
 --   Either String Int
 -- to track the measurements. A Left value represents a failed measurement,
--- while a Right value represents a successful one.
+-- while a Right value represents a succesful one.
 --
--- Compute the sum of all successful measurements. If there are
--- successful measurements, return the sum wrapped in a Right, but if
+-- Compute the sum of all succesful measurements. If there are
+-- succesful measurements, return the sum wrapped in a Right, but if
 -- there are none, return Left "no data".
 --
 -- Examples:
@@ -122,8 +123,7 @@ sumSuccess es = let successes = [x | Right x <- es]
 --   isOpen (open "0000" (lock (changeCode "0000" (open "1234" aLock)))) ==> True
 --   isOpen (open "1234" (lock (changeCode "0000" (open "1234" aLock)))) ==> False
 
-data Lock = Closed String | Opened String
-  deriving Show
+data Lock = Closed String | Open String
 
 -- aLock should be a locked lock with the code "1234"
 aLock :: Lock
@@ -131,26 +131,26 @@ aLock = Closed "1234"
 
 -- isOpen returns True if the lock is open
 isOpen :: Lock -> Bool
-isOpen (Opened _) = True
-isOpen _          = False
+isOpen (Open _) = True
+isOpen _        = False
 
 -- open tries to open the lock with the given code. If the code is
 -- wrong, nothing happens.
 open :: String -> Lock -> Lock
-open code (Closed c)
-  | code == c = Opened c
+open code (Closed code')
+  | code == code' = Open code
 open _ l = l
 
 -- lock closes a lock. If the lock is already closed, nothing happens.
 lock :: Lock -> Lock
-lock (Opened c) = Closed c
-lock l = l
+lock (Open c) = Closed c
+lock l        = l
 
 -- changeCode changes the code of an open lock. If the lock is closed,
 -- nothing happens.
 changeCode :: String -> Lock -> Lock
-changeCode code (Opened _) = Opened code
-changeCode _ l = l
+changeCode code (Open _) = Open code
+changeCode _    l        = l
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here's a type Text that just wraps a String. Implement an Eq
@@ -169,8 +169,7 @@ data Text = Text String
   deriving Show
 
 instance Eq Text where
-  Text x == Text y = filter (not . isSpace) x == filter (not . isSpace) y
-
+  Text s == Text t  =  filter (not . isSpace) s == filter (not . isSpace) t
 
 ------------------------------------------------------------------------------
 -- Ex 8: We can represent functions or mappings as lists of pairs.
@@ -234,8 +233,8 @@ compose ab bc = concatMap apply ab
 --   permute [2, 1, 0] (permute [2, 1, 0] "foo") ==> "foo"
 --   permute [1, 0, 2] (permute [0, 2, 1] [9,3,5]) ==> [5,9,3]
 --   permute [0, 2, 1] (permute [1, 0, 2] [9,3,5]) ==> [3,5,9]
---   permute ([1, 0, 2] `multiply` [0, 2, 1]) [9,3,5] ==> [5,9,3]
---   permute ([0, 2, 1] `multiply` [1, 0, 2]) [9,3,5] ==> [3,5,9]
+--   permute ([0, 2, 1] `multiply` [1, 0, 2]) [9,3,5] ==> [5,9,3]
+--   permute ([1, 0, 2] `multiply` [0, 2, 1]) [9,3,5] ==> [3,5,9]
 
 -- A type alias for index lists.
 type Permutation = [Int]
