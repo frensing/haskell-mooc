@@ -16,8 +16,8 @@ import Mooc.Todo
 --   take 10 (doublify [0..])  ==>  [0,0,1,1,2,2,3,3,4,4]
 
 doublify :: [a] -> [a]
-doublify []     = []
-doublify (x:xs) = x:x: doublify xs
+doublify [] = []
+doublify (x:xs) = x:x:doublify xs
 
 ------------------------------------------------------------------------------
 -- Ex 2: Implement the function interleave that takes two lists and
@@ -38,9 +38,8 @@ doublify (x:xs) = x:x: doublify xs
 --   take 10 (interleave [1..] (repeat 0)) ==> [1,0,2,0,3,0,4,0,5,0]
 
 interleave :: [a] -> [a] -> [a]
-interleave a      []     = a
-interleave []     b      = b
-interleave (a:as) (b:bs) = a:b: interleave as bs
+interleave (x:xs) ys = x:interleave ys xs
+interleave []     ys = ys
 
 ------------------------------------------------------------------------------
 -- Ex 3: Deal out cards. Given a list of players (strings), and a list
@@ -59,7 +58,7 @@ interleave (a:as) (b:bs) = a:b: interleave as bs
 -- Hint: remember the functions cycle and zip?
 
 deal :: [String] -> [String] -> [(String,String)]
-deal p c = zip c (cycle p)
+deal players cards = zip cards (cycle players)
 
 ------------------------------------------------------------------------------
 -- Ex 4: Compute a running average. Go through a list of Doubles and
@@ -78,9 +77,9 @@ deal p c = zip c (cycle p)
 
 averages :: [Double] -> [Double]
 averages [] = []
-averages (x:xs) = x : go 2 x xs
-  where go _ _ []     = []
-        go n s (y:ys) = (s+y) / n : go (n+1) (s+y) ys
+averages (x:xs) = go x 1 xs
+  where go sum count (x:xs) = (sum/count) : go (sum+x) (count+1) xs
+        go sum count []     = [sum/count]
 
 ------------------------------------------------------------------------------
 -- Ex 5: Given two lists, xs and ys, and an element z, generate an
@@ -98,7 +97,9 @@ averages (x:xs) = x : go 2 x xs
 --   take 10 (alternate [1,2] [3,4,5] 0) ==> [1,2,0,3,4,5,0,1,2,0]
 
 alternate :: [a] -> [a] -> a -> [a]
-alternate xs ys z = cycle (xs ++ [z] ++ ys ++ [z])
+alternate xs ys z = xs ++ z : alternate ys xs z
+-- OR
+alternate' xs ys z = cycle (xs++[z]++ys++[z])
 
 ------------------------------------------------------------------------------
 -- Ex 6: Check if the length of a list is at least n. Make sure your
@@ -110,10 +111,10 @@ alternate xs ys z = cycle (xs ++ [z] ++ ys ++ [z])
 --   lengthAtLeast 10 [0..]  ==> True
 
 lengthAtLeast :: Int -> [a] -> Bool
-lengthAtLeast 0 _      = True
-lengthAtLeast _ []     = False
-lengthAtLeast n (_:xs) = lengthAtLeast (n-1) xs
-
+lengthAtLeast 0 _  = True
+lengthAtLeast n [] = False
+lengthAtLeast n (x:xs) = lengthAtLeast (n-1) xs
+-- OR
 lengthAtLeast' n xs = length (take n xs) == n
 
 ------------------------------------------------------------------------------
@@ -157,7 +158,7 @@ ignorecase :: String -> IgnoreCase
 ignorecase s = IgnoreCase s
 
 instance Eq IgnoreCase where
-  IgnoreCase a == IgnoreCase b = map toLower a == map toLower b
+  IgnoreCase s == IgnoreCase t   = map toLower s == map toLower t
 
 ------------------------------------------------------------------------------
 -- Ex 9: Here's the Room type and some helper functions from the
@@ -202,7 +203,6 @@ play room (d:ds) = case move room d of Nothing -> [describe room]
 
 maze :: Room
 maze = maze1
-  where
-    maze1 = Room "Maze" [("Left", maze2), ("Right", maze3)]
-    maze2 = Room "Deeper in the maze" [("Left", maze3), ("Right", maze1)]
-    maze3 = Room "Elsewhere in the maze" [("Left", maze1), ("Right", maze2)]
+  where maze1 = Room "Maze" [("Left",maze2),("Right",maze3)]
+        maze2 = Room "Deeper in the maze" [("Left",maze3),("Right",maze1)]
+        maze3 = Room "Elsewhere in the maze" [("Left",maze1),("Right",maze2)]
