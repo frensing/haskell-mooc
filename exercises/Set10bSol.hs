@@ -37,9 +37,9 @@ x ||| False = x
 --   length [False,undefined] ==> 2
 
 boolLength :: [Bool] -> Int
-boolLength []        = 0
-boolLength (True:xs) = 1 + boolLength xs
-boolLength (_:xs)    = 1 + boolLength xs
+boolLength [] = 0
+boolLength (True:xs) = 1+boolLength xs
+boolLength (False:xs) = 1+boolLength xs
 
 ------------------------------------------------------------------------------
 -- Ex 3: Define the function validate which, given a predicate and a
@@ -53,7 +53,8 @@ boolLength (_:xs)    = 1 + boolLength xs
 --   validate (\x -> undefined) 3  ==>  an error!
 
 validate :: (a -> Bool) -> a -> a
-validate predicate value = if predicate value then value else value
+validate predicate value = case predicate value of True -> value
+                                                   False -> value
 
 ------------------------------------------------------------------------------
 -- Ex 4: Even though we can't implement the generic seq function
@@ -69,7 +70,7 @@ validate predicate value = if predicate value then value else value
 --
 -- Examples:
 --   myseq True  0 ==> 0
---   myseq ((\x -> x) True) 0 ==> 0
+--   myseq (not True) 0 ==> 0
 --   myseq (undefined :: Bool) 0
 --     ==> *** Exception: Prelude.undefined
 --   myseq (3::Int) True ==> True
@@ -87,13 +88,13 @@ class MySeq a where
   myseq :: a -> b -> b
 
 instance MySeq Bool where
-  myseq True  b = b
-  myseq False b = b
+  myseq True x = x
+  myseq _    x = x
 
 instance MySeq Int where
-  myseq 0 b = b
-  myseq _ b = b
+  myseq 0 x = x
+  myseq _ x = x
 
 instance MySeq [a] where
-  myseq [] b = b
-  myseq _  b = b
+  myseq [] x = x
+  myseq _  x = x
