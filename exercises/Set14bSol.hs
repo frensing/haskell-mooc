@@ -73,8 +73,8 @@ getAllQuery = Query (T.pack "SELECT account, amount FROM events;")
 -- openDatabase should open an SQLite database using the given
 -- filename, run initQuery on it, and produce a database Connection.
 openDatabase :: String -> IO Connection
-openDatabase path = do
-  db <- open path
+openDatabase name = do
+  db <- open name
   execute_ db initQuery
   return db
 
@@ -113,8 +113,8 @@ balanceQuery = Query (T.pack "SELECT amount FROM events WHERE account = ?;")
 
 balance :: Connection -> T.Text -> IO Int
 balance db account = do
-  t <- query db balanceQuery [account]
-  return . sum $ concat t
+  rows <- query db balanceQuery [account] :: IO [[Int]]
+  return (sum (map head rows))
 
 ------------------------------------------------------------------------------
 -- Ex 3: Now that we have the database part covered, let's think about
@@ -146,25 +146,28 @@ balance db account = do
 --   parseCommand [T.pack "deposit", T.pack "madoff", T.pack "123456"]
 --     ==> Just (Deposit "madoff" 123456)
 
-data Command = Deposit T.Text Int | Balance T.Text | Withdraw T.Text Int
+-- Withdraw added for Ex 7
+data Command = Deposit T.Text Int | Withdraw T.Text Int | Balance T.Text
   deriving (Show, Eq)
 
 parseInt :: T.Text -> Maybe Int
 parseInt = readMaybe . T.unpack
 
+-- Did you know you can give multiple type signatures at once like this?
 textDeposit, textWithdraw, textBalance :: T.Text
 textDeposit = T.pack "deposit"
 textWithdraw = T.pack "withdraw"
 textBalance = T.pack "balance"
 
+-- Includes the error handling from Ex 8.
 parseCommand :: [T.Text] -> Maybe Command
-parseCommand [c,n,a]
-  | c == textDeposit = do amount <- parseInt a
-                          return $ Deposit n amount
-  | c == textWithdraw = do amount <- parseInt a
-                           return $ Withdraw n amount
-parseCommand [c,n]
-  | c == textBalance = return $ Balance n
+parseCommand [command,account]
+  | command == textBalance  = return $ Balance account
+parseCommand [command,account,amountText]
+  | command == textDeposit  = do amount <- parseInt amountText
+                                 return $ Deposit account amount
+  | command == textWithdraw = do amount <- parseInt amountText
+                                 return $ Withdraw account amount
 parseCommand _ = Nothing
 
 ------------------------------------------------------------------------------
@@ -190,19 +193,31 @@ parseCommand _ = Nothing
 --   Set14b> perform db (Just (Balance (T.pack "unknown")))
 --   "0"
 
-perform :: Connection -> Maybe Command -> IO T.Text
-perform db (Just c)= do
-  case c of Deposit n a -> do 
-              deposit db n a
-              return $ T.pack "OK"
-            Balance n -> do
-              b <- balance db n
-              return . T.pack $ show b
-            Withdraw n a -> do
-              deposit db n (-a)
-              return $ T.pack "OK"
-perform _ Nothing = return $ T.pack "ERROR"
+performDeposit :: Connection -> T.Text -> Int -> IO T.Text
+performDeposit db account amount = do deposit db account amount
+                                      return (T.pack "OK")
 
+performBalance :: Connection -> T.Text -> IO T.Text
+performBalance db account = do
+  answer <- balance db account
+  return (T.pack (show answer))
+
+-- For Ex 7:
+performWithdraw :: Connection -> T.Text -> Int -> IO T.Text
+performWithdraw db account amount = do deposit db account (negate amount)
+                                       return (T.pack "OK")
+
+-- For Ex 8:
+performError :: IO T.Text
+performError = return (T.pack "ERROR")
+
+perform :: Connection -> Maybe Command -> IO T.Text
+perform db (Just (Deposit account amount)) = performDeposit db account amount
+perform db (Just (Balance account)) = performBalance db account
+-- For Ex 7:
+perform db (Just (Withdraw account amount)) = performWithdraw db account amount
+-- For Ex 8:
+perform db Nothing = performError
 
 ------------------------------------------------------------------------------
 -- Ex 5: Next up, let's set up a simple HTTP server. Implement a WAI
@@ -222,8 +237,7 @@ encodeResponse t = LB.fromStrict (encodeUtf8 t)
 -- Remember:
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 simpleServer :: Application
-simpleServer request respond =
-  respond (responseLBS status200 [] (encodeResponse $ T.pack "BANK"))
+simpleServer request respond = respond (responseLBS status200 [] (encodeResponse (T.pack "BANK")))
 
 ------------------------------------------------------------------------------
 -- Ex 6: Now we finally have all the pieces we need to actually
@@ -253,8 +267,16 @@ simpleServer request respond =
 -- type Application = Request -> (Response -> IO ResponseReceived) -> IO ResponseReceived
 server :: Connection -> Application
 server db request respond = do
-  res <- perform db . parseCommand $ pathInfo request
-  respond (responseLBS status200 [] (encodeResponse res))
+  let path = pathInfo request
+  --putStr "Request: "
+  --print path
+  let command = parseCommand path
+  --putStr "Command: "
+  --print command
+  response <- perform db command
+  --putStr "Response: "
+  --print response
+  respond (responseLBS status200 [] (encodeResponse response))
 
 port :: Int
 port = 3421
@@ -285,6 +307,7 @@ main = do
 --   - Open <http://localhost:3421/balance/simon> in your browser.
 --     You should see the text 11.
 
+-- See solutions to exercises 3 and 4 above
 
 ------------------------------------------------------------------------------
 -- Ex 8: Error handling. Modify the parseCommand function so that it
@@ -306,3 +329,4 @@ main = do
 --    - http://localhost:3421/balance/matti/pekka
 
 
+-- See solutions to exercises 3 and 4 above
