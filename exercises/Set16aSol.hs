@@ -18,7 +18,12 @@ import Data.List
 --  +++ OK, passed 1 test.
 
 isSorted :: (Show a, Ord a) => [a] -> Property
-isSorted xs = sort xs === xs
+isSorted xs = xs === sort xs
+-- OR
+isSorted' xs = checkSort xs === True
+  where checkSort [] = True
+        checkSort [x] = True
+        checkSort (x:y:xs) = x<=y && checkSort (y:xs)
 
 ------------------------------------------------------------------------------
 -- Ex 2: In this and the following exercises, we'll build a suite of
@@ -50,7 +55,7 @@ isSorted xs = sort xs === xs
 --  +++ OK, passed 1 test.
 
 sumIsLength :: Show a => [a] -> [(a,Int)] -> Property
-sumIsLength input output = length input === sum (map snd output)
+sumIsLength input output = length input === sum [i | (_,i) <- output]
 
 -- This is a function that passes the sumIsLength test but is wrong
 freq1 :: Eq a => [a] -> [(a,Int)]
@@ -79,7 +84,8 @@ freq1 (x:y:xs) = [(x,1),(y,length xs + 1)]
 --  +++ OK, passed 100 tests.
 
 inputInOutput :: (Show a, Eq a) => [a] -> [(a,Int)] -> Property
-inputInOutput input output = forAll (elements input) (\x -> x `elem` (map fst output))
+inputInOutput input output =
+  forAll (elements input) (\i -> elem i (map fst output))
 
 -- This function passes both the sumIsLength and inputInOutput tests
 freq2 :: Eq a => [a] -> [(a,Int)]
@@ -110,8 +116,8 @@ freq2 xs = map (\x -> (x,1)) xs
 --  +++ OK, passed 100 tests.
 
 outputInInput :: (Show a, Eq a) => [a] -> [(a,Int)] -> Property
-outputInInput input output = forAll (elements output) check
-  where check (a,x) = x == length (filter (==a) input)
+outputInInput input output = forAll (elements output) $ \(x,n) ->
+  length (filter (==x) input) === n
 
 -- This function passes the outputInInput test but not the others
 freq3 :: Eq a => [a] -> [(a,Int)]
@@ -140,10 +146,14 @@ freq3 (x:xs) = [(x,1 + length (filter (==x) xs))]
 --  +++ OK, passed 100 tests.
 
 frequenciesProp :: ([Char] -> [(Char,Int)]) -> NonEmptyList Char -> Property
-frequenciesProp freq (NonEmpty input) = sumIsLength input output 
-                                        .&&. inputInOutput input output
-                                        .&&. outputInInput input output
-  where output = freq input
+-- The counterexample calls aren't necessary to pass the exercise, but
+-- give nicer output.
+frequenciesProp freq (NonEmpty input) =
+  let output = freq input
+  in counterexample ("Output was "++show output) $
+     conjoin [counterexample "sumIsLength" $ sumIsLength input output,
+              counterexample "inputInOutput" $ inputInOutput input output,
+              counterexample "outputInInput" $ outputInInput input output]
 
 frequencies :: Eq a => [a] -> [(a,Int)]
 frequencies [] = []
@@ -175,9 +185,9 @@ frequencies (x:ys) = (x, length xs) : frequencies others
 
 genList :: Gen [Int]
 genList = do
-  n <- choose (3,5)
-  l <- vectorOf n (chooseInt (0,10))
-  return . sort $ l
+  len <- choose (3,5)
+  list <- vectorOf len (choose (0,10))
+  return (sort list)
 
 ------------------------------------------------------------------------------
 -- Ex 7: Here are the datatypes Arg and Expression from Set 15. Write
@@ -214,14 +224,11 @@ data Arg = Number Int | Variable Char
 data Expression = Plus Arg Arg | Minus Arg Arg
   deriving (Show, Eq)
 
+-- This is also a nice use case for Applicative syntax!
 instance Arbitrary Arg where
-  arbitrary = oneof [genNum, genVar]
-    where genNum = elements $ map Number [0..10]
-          genVar = elements $ map Variable "abcxyz"
+  arbitrary = oneof [genNumber, genVariable]
+    where genNumber = Number <$> choose (0,10)
+          genVariable = Variable <$> elements "abcxyz"
 
 instance Arbitrary Expression where
-  arbitrary = do
-    x <- arbitrary
-    y <- arbitrary
-    op <- elements [Plus, Minus]
-    return $ op x y
+  arbitrary = elements [Plus,Minus] <*> arbitrary <*> arbitrary
