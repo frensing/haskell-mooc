@@ -30,8 +30,8 @@ pounds = Money 3
 usdToChf :: Rate USD CHF
 usdToChf = Rate 1.11
 
-composeRates :: Rate from middle -> Rate middle to -> Rate from to
-composeRates (Rate r1) (Rate r2) = Rate (r1*r2)
+composeRates :: Rate from mid -> Rate mid to -> Rate from to
+composeRates (Rate x) (Rate y) = Rate (x*y)
 
 ------------------------------------------------------------------------------
 -- Ex 3: Tracking first, last and full names with phantom types. The
@@ -40,10 +40,9 @@ composeRates (Rate r1) (Rate r2) = Rate (r1*r2)
 --  * Name Last - for last names
 --  * Name Full - for full names
 --
--- In this exercise, you should define the phantom types First, Last
--- and Full, and the parameterised type Name. Then implement the
--- functions fromName, toFirst and toLast. Give the functions the
--- commented-out types
+-- In this exercise, you should define the types First, Last, Full and
+-- Name. Then implement the functions fromName, toFirst and toLast. Give
+-- the functions the commented-out types
 --
 -- Examples:
 --  fromName (toFirst "bob") ==> "bob"
@@ -54,20 +53,20 @@ composeRates (Rate r1) (Rate r2) = Rate (r1*r2)
 data First
 data Last
 data Full
-data Name nameType = Name String
-  deriving Show
+
+data Name a = Name String
 
 -- Get the String contained in a name
-fromName :: Name a -> String
-fromName (Name x) = x
+--fromName :: Name a -> String
+fromName (Name s) = s
 
 -- Build a Name First
 toFirst :: String -> Name First
-toFirst = Name
+toFirst s = Name s
 
 -- Build a Name Last
 toLast :: String -> Name Last
-toLast = Name
+toLast s = Name s
 
 ------------------------------------------------------------------------------
 -- Ex 4: Implement the functions capitalize and toFull.
@@ -75,7 +74,7 @@ toLast = Name
 -- toFull should combine a first and a last name into a full name. Give
 -- toFull the correct type (see examples below).
 --
--- capitalize should capitalize the first letter of a name. Give
+-- capitalize shouldCapitalize the first letter of a name. Give
 -- capitalize the correct type (see examples below).
 --
 -- Examples:
@@ -88,10 +87,10 @@ toLast = Name
 --  fromName (capitalize (toLast "smith")) ==> "Smith"
 
 capitalize :: Name a -> Name a
-capitalize (Name x) = Name (toUpper (head x) : tail x)
+capitalize (Name (c:cs)) = Name (toUpper c : cs)
 
 toFull :: Name First -> Name Last -> Name Full
-toFull (Name f) (Name l) = Name (f++" "++l)
+toFull (Name f) (Name l) = Name (f ++ " " ++ l)
 
 ------------------------------------------------------------------------------
 -- Ex 5: Type classes can let you write code that handles different
